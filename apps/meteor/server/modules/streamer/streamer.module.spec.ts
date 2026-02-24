@@ -15,13 +15,9 @@ class TestStreamer extends Streamer<'notify-all'> {
 	registerPublication(
 		_name: string,
 		_fn: (eventName: string, options: boolean | { useCollection?: boolean; args?: any }) => Promise<void>,
-	): void {
-		// Mock implementation - not needed for these tests
-	}
+	): void {}
 
-	registerMethod(_methods: Record<string, (eventName: string, ...args: any[]) => any>): void {
-		// Mock implementation - not needed for these tests
-	}
+	registerMethod(_methods: Record<string, (eventName: string, ...args: any[]) => any>): void {}
 
 	changedPayload(collection: string, id: string, fields: Record<string, any>): string | false {
 		return JSON.stringify({ msg: 'changed', collection, id, fields });
@@ -35,16 +31,11 @@ describe('Streamer.sendToManySubscriptions', () => {
 	let mockSocket: { send: jest.Mock };
 
 	beforeEach(() => {
-		// Reset mocks
 		jest.clearAllMocks();
-
-		// Clear StreamerCentral instances to prevent state leakage between tests
 		StreamerCentral.instances = {};
 
-		// Create mock socket
 		mockSocket = { send: jest.fn() };
 
-		// Create mock publication
 		mockPublication = {
 			userId: 'user123',
 			connection: { id: 'conn1' } as Connection,
@@ -56,7 +47,7 @@ describe('Streamer.sendToManySubscriptions', () => {
 			onStop: jest.fn(),
 		} as unknown as IPublication;
 
-		// Create streamer instance
+
 		streamer = new TestStreamer('test-stream');
 	});
 
@@ -64,28 +55,24 @@ describe('Streamer.sendToManySubscriptions', () => {
 		it('should await all async permission checks before resolving', async () => {
 			const checkOrder: string[] = [];
 
-			// Create subscriptions
+
 			const sub1 = {
 				subscription: { ...mockPublication },
 				eventName: 'test-event',
 			};
 			mockSubscriptions = new Set([sub1]);
 
-			// Mock async permission check
+
 			streamer.isEmitAllowed = jest.fn(async () => {
 				checkOrder.push('permission-checked');
 				await new Promise((resolve) => setTimeout(resolve, 10));
 				return true;
 			});
 
-			// Call sendToManySubscriptions
-			await streamer.sendToManySubscriptions(mockSubscriptions, undefined, 'test-event', [], 'test-message');
+				await streamer.sendToManySubscriptions(mockSubscriptions, undefined, 'test-event', [], 'test-message');
 
-			// Verify permission was checked
-			expect(streamer.isEmitAllowed).toHaveBeenCalledTimes(1);
-			expect(checkOrder).toContain('permission-checked');
-
-			// Verify message was sent after permission check
+				expect(streamer.isEmitAllowed).toHaveBeenCalledTimes(1);
+				expect(checkOrder).toContain('permission-checked');
 			expect(mockSocket.send).toHaveBeenCalledWith('test-message');
 		});
 
@@ -96,18 +83,17 @@ describe('Streamer.sendToManySubscriptions', () => {
 			};
 			mockSubscriptions = new Set([sub1]);
 
-			// Mock permission check that throws
+
 			const testError = new Error('Permission check failed');
 			streamer.isEmitAllowed = jest.fn(async () => {
 				throw testError;
 			});
 
-			// Should not throw
-			await expect(
+await expect(
 				streamer.sendToManySubscriptions(mockSubscriptions, undefined, 'test-event', [], 'test-message'),
 			).resolves.toBeUndefined();
 
-			// Should log the error
+
 			expect(SystemLogger.error).toHaveBeenCalledWith({
 				msg: 'Error sending to subscription',
 				streamer: 'test-stream',
@@ -115,7 +101,6 @@ describe('Streamer.sendToManySubscriptions', () => {
 				err: testError,
 			});
 
-			// Should not send message
 			expect(mockSocket.send).not.toHaveBeenCalled();
 		});
 
@@ -148,13 +133,8 @@ describe('Streamer.sendToManySubscriptions', () => {
 
 			await streamer.sendToManySubscriptions(mockSubscriptions, undefined, 'test-event', [], 'test-message');
 
-			// First subscription should fail
-			expect(mockSocket.send).not.toHaveBeenCalled();
-
-			// Second subscription should succeed
-			expect(mockSocket2.send).toHaveBeenCalledWith('test-message');
-
-			// Error should be logged once
+				expect(mockSocket.send).not.toHaveBeenCalled();
+				expect(mockSocket2.send).toHaveBeenCalledWith('test-message');
 			expect(SystemLogger.error).toHaveBeenCalledTimes(1);
 		});
 	});
@@ -224,7 +204,7 @@ describe('Streamer.sendToManySubscriptions', () => {
 
 			await streamer.sendToManySubscriptions(mockSubscriptions, originConnection, 'test-event', [], 'test-message');
 
-			// Should not check permissions or send
+
 			expect(streamer.isEmitAllowed).not.toHaveBeenCalled();
 			expect(mockSocket.send).not.toHaveBeenCalled();
 		});
@@ -280,7 +260,7 @@ describe('Streamer.sendToManySubscriptions', () => {
 
 			await streamer.sendToManySubscriptions(mockSubscriptions, originConnection, 'test-event', [], 'test-message');
 
-			// Should only check/send to non-origin subscription
+
 			expect(streamer.isEmitAllowed).toHaveBeenCalledTimes(1);
 			expect(mockSocket.send).not.toHaveBeenCalled();
 			expect(mockSocket2.send).toHaveBeenCalledWith('test-message');
@@ -393,7 +373,6 @@ describe('Streamer.sendToManySubscriptions', () => {
 			).resolves.toBeUndefined();
 
 			expect(streamer.isEmitAllowed).toHaveBeenCalled();
-			// Optional chaining (socket?.send) prevents TypeError — no error should be logged
 			expect(SystemLogger.error).not.toHaveBeenCalled();
 		});
 
@@ -419,7 +398,6 @@ describe('Streamer.sendToManySubscriptions', () => {
 			).resolves.toBeUndefined();
 
 			expect(streamer.isEmitAllowed).toHaveBeenCalled();
-			// Optional chaining (socket?.send) prevents TypeError — no error should be logged
 			expect(SystemLogger.error).not.toHaveBeenCalled();
 		});
 
@@ -448,9 +426,9 @@ describe('Streamer.sendToManySubscriptions', () => {
 				_session: { userId: 'user3', socket: mockSocket3 },
 			} as unknown as IPublication;
 
-			const sub1 = { subscription: mockPub1, eventName: 'test' };
-			const sub2 = { subscription: mockPub2, eventName: 'test' };
-			const sub3 = { subscription: mockPub3, eventName: 'test' };
+			const sub1 = { subscription: mockPub1, eventName: 'test-event' };
+			const sub2 = { subscription: mockPub2, eventName: 'test-event' };
+			const sub3 = { subscription: mockPub3, eventName: 'test-event' };
 
 			mockSubscriptions = new Set([sub1, sub2, sub3]);
 
@@ -458,12 +436,9 @@ describe('Streamer.sendToManySubscriptions', () => {
 
 			await streamer.sendToManySubscriptions(mockSubscriptions, undefined, 'test-event', [], 'test-message');
 
-			// Verify all were sent
-			expect(mockSocket1.send).toHaveBeenCalledWith('test-message');
-			expect(mockSocket2.send).toHaveBeenCalledWith('test-message');
-			expect(mockSocket3.send).toHaveBeenCalledWith('test-message');
-
-			// Verify sequential processing (order should be 1, 2, 3)
+				expect(mockSocket1.send).toHaveBeenCalledWith('test-message');
+				expect(mockSocket2.send).toHaveBeenCalledWith('test-message');
+				expect(mockSocket3.send).toHaveBeenCalledWith('test-message');
 			expect(sendOrder).toEqual([1, 2, 3]);
 		});
 	});

@@ -290,13 +290,12 @@ export abstract class Streamer<N extends keyof StreamerEvents> extends EventEmit
 		args: any[],
 		getMsg: string | TransformMessage,
 	): Promise<void> {
-		for (const subscription of subscriptions) {
+		for await (const subscription of subscriptions) {
 			if (this.retransmitToSelf === false && origin && origin === subscription.subscription.connection) {
 				continue;
 			}
 
 			try {
-				// eslint-disable-next-line no-await-in-loop
 				const allowed = await this.isEmitAllowed(subscription.subscription, eventName, ...args);
 				if (allowed) {
 					const msg = typeof getMsg === 'string' ? getMsg : getMsg(this, subscription, eventName, args, allowed);
